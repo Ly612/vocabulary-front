@@ -1,0 +1,91 @@
+---
+import Base from '../layouts/Base.astro';
+import WordCard from '../components/WordCard.astro';
+import { getAllWords, getLevelStats } from '../lib/glossary';
+
+const words = getAllWords();
+const total = words.length;
+const stats = getLevelStats();
+// 精选一级词作为橱窗展示
+const featured = words.filter((w) => w.level === '一级').slice(0, 8);
+---
+
+<Base>
+  <!-- Hero -->
+  <section class="relative overflow-hidden">
+    <div class="container-page grid gap-10 py-16 sm:py-24 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+      <div class="flex flex-col gap-6">
+        <span class="tag w-fit">HSK 一级 — 七·九级 · 共 {total.toLocaleString()} 词</span>
+        <h1 class="font-song text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
+          一字一世界<br />
+          <span class="text-zhu">品读汉语之美</span>
+        </h1>
+        <p class="max-w-xl text-base leading-relaxed text-inklight">
+          收录由一级至七·九级的汉语核心词汇，附拼音、词性、释义与地道例句。
+          浏览、搜索、分级精进，或以闪卡温故知新——于方寸之间，见字如面。
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a href="/words/" class="btn-primary">开始查词</a>
+          <a href="/levels/" class="btn-ghost">分级学习</a>
+          <a href="/flashcards/" class="btn-ghost">闪卡复习</a>
+        </div>
+      </div>
+
+      <div class="relative">
+        <div class="card relative mx-auto max-w-sm rotate-1 p-8">
+          <div class="absolute -right-4 -top-4 seal h-14 w-14 rotate-6 text-xl">章</div>
+          <p class="text-sm text-inklight">示例 · 一级</p>
+          <p class="mt-3 font-song text-6xl font-black text-ink">爱</p>
+          <p class="mt-2 text-lg text-dai">ài <span class="text-sm text-jin">[动]</span></p>
+          <p class="mt-4 text-sm text-inklight">to love; to be fond of; to like</p>
+          <div class="mt-6 rounded-lg bg-xuan/70 p-4">
+            <p class="font-song text-ink">我爱你。</p>
+            <p class="mt-1 text-xs text-inklight">wǒ ài nǐ。</p>
+            <p class="mt-1 text-sm text-dai">I love you.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 分级概览 -->
+  <section class="container-page py-12">
+    <div class="mb-8 flex items-end justify-between">
+      <div>
+        <h2 class="font-song text-2xl font-bold">分级精进</h2>
+        <p class="mt-1 text-sm text-inklight">循序渐进，由浅入深</p>
+      </div>
+      <a href="/levels/" class="link-quiet text-sm">查看全部 →</a>
+    </div>
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {
+        stats.map((s, i) => (
+          <a
+            href={`/levels/${encodeURIComponent(s.level)}/`}
+            class="card group flex flex-col gap-2 p-5 transition-all hover:-translate-y-0.5 hover:border-jin/60"
+          >
+            <span class="font-song text-3xl font-black text-zhu/90">
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <span class="font-song text-lg font-bold">{s.level}</span>
+            <span class="text-sm text-inklight">{s.count.toLocaleString()} 词</span>
+            <span class="mt-1 text-xs text-jin opacity-0 transition-opacity group-hover:opacity-100">
+              进入学习 →
+            </span>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- 橱窗 -->
+  <section class="container-page py-12">
+    <div class="mb-8">
+      <h2 class="font-song text-2xl font-bold">每日一览</h2>
+      <p class="mt-1 text-sm text-inklight">从最常用的一级词开始</p>
+    </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {featured.map((w) => <WordCard word={w} />)}
+    </div>
+  </section>
+</Base>

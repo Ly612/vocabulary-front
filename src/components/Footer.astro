@@ -1,0 +1,16 @@
+---
+import { getAllWords } from '../lib/glossary';
+const total = getAllWords().length;
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-16 border-t border-cloud/80 bg-paper/60">
+  <div class="container-page flex flex-col items-center gap-2 py-8 text-center">
+    <span class="seal h-9 w-9 text-base">华</span>
+    <p class="font-song text-sm text-ink">华章 · 汉语词汇</p>
+    <p class="text-xs text-inklight">
+      收录 {total.toLocaleString()} 条词汇 · 一级至七-九级 · 典雅品读
+    </p>
+    <p class="text-[11px] text-inklight/70">© {year} 华章 · 以 Astro + Tailwind CSS 构建</p>
+  </div>
+</footer>

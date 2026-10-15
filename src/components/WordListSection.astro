@@ -1,0 +1,35 @@
+---
+import SearchBox from './SearchBox.astro';
+import WordCard from './WordCard.astro';
+import Pagination from './Pagination.astro';
+import type { Word } from '../lib/glossary';
+
+interface Props {
+  items: Word[];
+  current: number;
+  totalPages: number;
+  totalItems: number;
+}
+const { items, current, totalPages, totalItems } = Astro.props;
+const hrefFor = (p: number) => (p === 1 ? '/words/' : `/words/page/${p}/`);
+---
+
+<section class="container-page py-10">
+  <div class="mb-6">
+    <h1 class="font-song text-3xl font-bold">词汇总览</h1>
+    <p class="mt-1 text-sm text-inklight">
+      共 {totalItems.toLocaleString()} 词 · 第 {current}/{totalPages} 页
+    </p>
+  </div>
+
+  <SearchBox />
+
+  <div
+    data-static-list
+    class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+  >
+    {items.map((w) => <WordCard word={w} />)}
+  </div>
+
+  <Pagination current={current} total={totalPages} hrefFor={hrefFor} />
+</section>

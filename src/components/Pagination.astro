@@ -1,0 +1,65 @@
+---
+interface Props {
+  current: number;
+  total: number;
+  /** 生成某页链接的基础函数，传入页码返回 href */
+  hrefFor: (page: number) => string;
+}
+const { current, total, hrefFor } = Astro.props;
+
+function pageWindow(cur: number, tot: number): (number | '...')[] {
+  const out: (number | '...')[] = [];
+  const add = (n: number) => out.push(n);
+  const span = 2;
+  const start = Math.max(1, cur - span);
+  const end = Math.min(tot, cur + span);
+  if (start > 1) {
+    add(1);
+    if (start > 2) out.push('...');
+  }
+  for (let i = start; i <= end; i++) add(i);
+  if (end < tot) {
+    if (end < tot - 1) out.push('...');
+    add(tot);
+  }
+  return out;
+}
+const items = pageWindow(current, total);
+---
+
+{
+  total > 1 && (
+    <nav class="mt-10 flex flex-wrap items-center justify-center gap-2">
+      <a
+        href={current > 1 ? hrefFor(current - 1) : undefined}
+        class={`btn-ghost ${current <= 1 ? 'pointer-events-none opacity-40' : ''}`}
+        aria-disabled={current <= 1}
+      >
+        上一页
+      </a>
+      {items.map((it) =>
+        it === '...' ? (
+          <span class="px-2 text-inklight">…</span>
+        ) : (
+          <a
+            href={hrefFor(it)}
+            class={`inline-flex h-10 min-w-10 items-center justify-center rounded-lg border px-3 text-sm font-medium transition-colors ${
+              it === current
+                ? 'border-zhu bg-zhu text-paper'
+                : 'border-cloud bg-paper text-ink hover:border-jin/60 hover:text-zhu'
+            }`}
+          >
+            {it}
+          </a>
+        )
+      )}
+      <a
+        href={current < total ? hrefFor(current + 1) : undefined}
+        class={`btn-ghost ${current >= total ? 'pointer-events-none opacity-40' : ''}`}
+        aria-disabled={current >= total}
+      >
+        下一页
+      </a>
+    </nav>
+  )
+}

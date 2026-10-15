@@ -1,0 +1,112 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Base from '../../../layouts/Base.astro';
+import { getAllWords, getWordsByLevel, type Word } from '../../../lib/glossary';
+
+export const getStaticPaths = (() => {
+  return getAllWords().map((w) => ({
+    params: { slug: w.slug },
+    props: { word: w },
+  }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  word: Word;
+}
+const { word } = Astro.props as Props;
+
+// 同级相邻词（用于“继续学习”）
+const peers = getWordsByLevel(word.level);
+const idx = peers.findIndex((w) => w.slug === word.slug);
+const prev = idx > 0 ? peers[idx - 1] : undefined;
+const next = idx >= 0 && idx < peers.length - 1 ? peers[idx + 1] : undefined;
+
+const defParts = word.definition
+  .split('/')
+  .map((s) => s.trim())
+  .filter(Boolean);
+---
+
+<Base
+  title={`${word.word} ${word.pinyin} · 华章`}
+  description={`${word.word}（${word.pinyin}）${word.shortDef}`}
+>
+  <article class="container-page py-10">
+    <nav class="mb-6 flex items-center gap-2 text-sm text-inklight">
+      <a href="/words/" class="link-quiet">词汇</a>
+      <span>/</span>
+      <a href={`/levels/${encodeURIComponent(word.level)}/`} class="link-quiet">{word.level}</a>
+      <span>/</span>
+      <span class="text-ink">{word.word}</span>
+    </nav>
+
+    <!-- 词头 -->
+    <header class="card relative overflow-hidden p-8">
+      <div class="absolute -right-6 -top-6 seal h-24 w-24 rotate-6 text-4xl opacity-90">
+        {word.word.slice(0, 1)}
+      </div>
+      <span class="tag">{word.level}</span>
+      <h1 class="mt-4 font-song text-6xl font-black sm:text-7xl">{word.word}</h1>
+      <div class="mt-4 flex flex-wrap items-center gap-3 text-xl text-dai">
+        <span class="font-medium">{word.pinyin}</span>
+        {word.cixing && <span class="tag">{word.cixing}</span>}
+      </div>
+    </header>
+
+    <!-- 释义 -->
+    <section class="mt-6 card p-6">
+      <h2 class="font-song text-xl font-bold text-zhu">释义</h2>
+      <ol class="mt-4 space-y-2">
+        {
+          defParts.map((d, i) => (
+            <li class="flex gap-3">
+              <span class="seal h-6 w-6 shrink-0 text-xs">{i + 1}</span>
+              <span class="text-base leading-relaxed text-ink">{d}</span>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+
+    <!-- 例句 -->
+    {
+      word.examples.length > 0 && (
+        <section class="mt-6 card p-6">
+          <h2 class="font-song text-xl font-bold text-zhu">例句</h2>
+          <ul class="mt-4 space-y-5">
+            {word.examples.map((ex) => (
+              <li class="border-l-2 border-jin/50 pl-4">
+                <p class="font-song text-xl text-ink">{ex.zh}</p>
+                <p class="mt-1 text-sm text-inklight">{ex.pinyin}</p>
+                <p class="mt-1 text-base text-dai">{ex.en}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    <!-- 相邻导航 -->
+    <nav class="mt-8 flex items-stretch justify-between gap-4">
+      {
+        prev ? (
+          <a href={`/words/${prev.slug}/`} class="btn-ghost flex-1 justify-start">
+            ← <span class="font-song">{prev.word}</span>
+          </a>
+        ) : (
+          <span class="flex-1" />
+        )
+      }
+      <a href={`/levels/${encodeURIComponent(word.level)}/`} class="btn-ghost">返回 {word.level}</a>
+      {
+        next ? (
+          <a href={`/words/${next.slug}/`} class="btn-ghost flex-1 justify-end">
+            <span class="font-song">{next.word}</span> →
+          </a>
+        ) : (
+          <span class="flex-1" />
+        )
+      }
+    </nav>
+  </article>
+</Base>

@@ -1,0 +1,24 @@
+---
+import type { Word } from '../lib/glossary';
+interface Props {
+  word: Word;
+}
+const { word } = Astro.props;
+---
+
+<a
+  href={`/words/${word.slug}/`}
+  class="card group flex flex-col gap-2 p-4 transition-all hover:-translate-y-0.5 hover:border-jin/60 hover:shadow-lg"
+>
+  <div class="flex items-baseline justify-between gap-2">
+    <h3 class="font-song text-2xl font-bold text-ink group-hover:text-zhu">
+      {word.word}
+    </h3>
+    <span class="tag shrink-0">{word.level}</span>
+  </div>
+  <div class="flex items-center gap-2 text-sm text-inklight">
+    <span class="font-medium text-dai">{word.pinyin}</span>
+    {word.cixing && <span class="text-xs text-jin">[{word.cixing}]</span>}
+  </div>
+  <p class="line-clamp-2 text-sm text-inklight/90">{word.shortDef}</p>
+</a>

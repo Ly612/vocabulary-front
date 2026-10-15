@@ -1,0 +1,51 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getLevelStats, getAllWords } from '../../lib/glossary';
+
+const stats = getLevelStats();
+const total = getAllWords().length;
+const descMap: Record<string, string> = {
+  一级: '入门启蒙 · 最常用的基础字词',
+  二级: '日常沟通 · 扩展生活词汇',
+  三级: '进阶表达 · 丰富话题与场景',
+  四级: '熟练运用 · 书面与口语并重',
+  五级: '深度理解 · 抽象与专业词汇',
+  六级: '高级精通 · 细腻语义辨析',
+  '七-九级': '精研典雅 · 高阶与书面语汇',
+};
+---
+
+<Base title="分级学习 · 华章">
+  <section class="container-page py-10">
+    <div class="mb-8">
+      <h1 class="font-song text-3xl font-bold">分级学习</h1>
+      <p class="mt-1 text-sm text-inklight">
+        依 HSK 标准由一级至七·九级，循序渐进 · 共 {total.toLocaleString()} 词
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        stats.map((s, i) => (
+          <a
+            href={`/levels/${encodeURIComponent(s.level)}/`}
+            class="card group relative overflow-hidden p-6 transition-all hover:-translate-y-1 hover:border-jin/60"
+          >
+            <div class="absolute -right-4 -top-6 font-song text-8xl font-black text-zhu/5">
+              {i + 1}
+            </div>
+            <span class="seal h-10 w-10 text-lg">{i + 1}</span>
+            <h2 class="mt-4 font-song text-2xl font-bold group-hover:text-zhu">{s.level}</h2>
+            <p class="mt-1 text-sm text-inklight">{descMap[s.level] ?? ''}</p>
+            <div class="mt-4 flex items-center justify-between">
+              <span class="tag">{s.count.toLocaleString()} 词</span>
+              <span class="text-sm text-jin opacity-0 transition-opacity group-hover:opacity-100">
+                进入 →
+              </span>
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+</Base>

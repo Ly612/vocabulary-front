@@ -1,0 +1,160 @@
+---
+import { getAllCixing, LEVEL_ORDER } from '../lib/glossary';
+const cixingList = getAllCixing();
+const levels = LEVEL_ORDER;
+---
+
+<section class="card p-4 sm:p-6" data-search-root>
+  <div class="flex flex-col gap-3">
+    <div class="relative">
+      <input
+        type="search"
+        id="q"
+        placeholder="输入汉字、拼音或释义，如 “爱 / ai / love”"
+        autocomplete="off"
+        class="w-full rounded-lg border border-cloud bg-xuan/60 px-4 py-3 pl-11 text-base outline-none transition focus:border-zhu focus:bg-paper"
+      />
+      <svg class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-inklight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <select id="f-level" class="rounded-lg border border-cloud bg-paper px-3 py-2 text-sm outline-none focus:border-zhu">
+        <option value="">全部级别</option>
+        {levels.map((l) => <option value={l}>{l}</option>)}
+      </select>
+      <select id="f-cixing" class="rounded-lg border border-cloud bg-paper px-3 py-2 text-sm outline-none focus:border-zhu">
+        <option value="">全部词性</option>
+        {cixingList.map((c) => <option value={c}>{c}</option>)}
+      </select>
+      <span id="count" class="ml-auto text-sm text-inklight"></span>
+    </div>
+  </div>
+
+  <!-- 搜索结果（默认隐藏，有输入/筛选时显示并覆盖静态列表） -->
+  <div id="results-wrap" class="mt-5 hidden">
+    <div id="results" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+    <p id="empty" class="hidden py-10 text-center text-inklight">未找到匹配的词汇，换个关键词试试。</p>
+    <p id="loading" class="py-10 text-center text-inklight">正在载入词库…</p>
+  </div>
+</section>
+
+<script>
+  type Entry = { s: string; w: string; p: string; c: string; l: string; d: string };
+
+  const root = document.querySelector('[data-search-root]')!;
+  const q = document.getElementById('q') as HTMLInputElement;
+  const fLevel = document.getElementById('f-level') as HTMLSelectElement;
+  const fCixing = document.getElementById('f-cixing') as HTMLSelectElement;
+  const resultsWrap = document.getElementById('results-wrap')!;
+  const results = document.getElementById('results')!;
+  const empty = document.getElementById('empty')!;
+  const loading = document.getElementById('loading')!;
+  const countEl = document.getElementById('count')!;
+  // 静态列表容器（页面上 data-static-list）在搜索激活时隐藏
+  const staticList = document.querySelector('[data-static-list]') as HTMLElement | null;
+
+  let index: Entry[] | null = null;
+  let loadingPromise: Promise<void> | null = null;
+
+  function normalizePinyin(s: string): string {
+    // 去声调，便于无声调拼音搜索
+    return s
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  }
+
+  async function ensureIndex() {
+    if (index) return;
+    if (!loadingPromise) {
+      loadingPromise = fetch('/search-index.json')
+        .then((r) => r.json())
+        .then((data: Entry[]) => {
+          index = data.map((e) => ({ ...e, p: e.p }));
+        });
+    }
+    await loadingPromise;
+  }
+
+  function isActive() {
+    return q.value.trim() !== '' || fLevel.value !== '' || fCixing.value !== '';
+  }
+
+  function render(list: Entry[]) {
+    const max = 120;
+    const shown = list.slice(0, max);
+    results.innerHTML = shown
+      .map(
+        (e) => `
+      <a href="/words/${e.s}/" class="card group flex flex-col gap-1 p-3 hover:border-jin/60 hover:-translate-y-0.5 transition-all">
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="font-song text-xl font-bold group-hover:text-zhu">${e.w}</span>
+          <span class="tag shrink-0">${e.l}</span>
+        </div>
+        <span class="text-sm text-dai">${e.p}${e.c ? ` <span class="text-xs text-jin">[${e.c}]</span>` : ''}</span>
+        <span class="line-clamp-1 text-xs text-inklight/90">${e.d || ''}</span>
+      </a>`
+      )
+      .join('');
+    empty.classList.toggle('hidden', list.length !== 0);
+    countEl.textContent =
+      list.length > max ? `约 ${list.length} 条（显示前 ${max}）` : `${list.length} 条`;
+  }
+
+  async function run() {
+    if (!isActive()) {
+      resultsWrap.classList.add('hidden');
+      if (staticList) staticList.classList.remove('hidden');
+      countEl.textContent = '';
+      return;
+    }
+    if (staticList) staticList.classList.add('hidden');
+    resultsWrap.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    await ensureIndex();
+    loading.classList.add('hidden');
+
+    const kw = q.value.trim();
+    const kwLower = kw.toLowerCase();
+    const kwPinyin = normalizePinyin(kw);
+    const lv = fLevel.value;
+    const cx = fCixing.value;
+
+    const filtered = (index || []).filter((e) => {
+      if (lv && e.l !== lv) return false;
+      if (cx && e.c !== cx) return false;
+      if (!kw) return true;
+      if (e.w.includes(kw)) return true;
+      if (normalizePinyin(e.p).includes(kwPinyin)) return true;
+      if (e.d.toLowerCase().includes(kwLower)) return true;
+      return false;
+    });
+    // 排序：汉字完全匹配优先
+    filtered.sort((a, b) => {
+      const ea = a.w === kw ? 0 : 1;
+      const eb = b.w === kw ? 0 : 1;
+      return ea - eb;
+    });
+    render(filtered);
+  }
+
+  let t: number | undefined;
+  const debounced = () => {
+    window.clearTimeout(t);
+    t = window.setTimeout(run, 160);
+  };
+
+  q.addEventListener('input', debounced);
+  fLevel.addEventListener('change', run);
+  fCixing.addEventListener('change', run);
+
+  // 支持从 URL ?q= 预填
+  const params = new URLSearchParams(location.search);
+  if (params.get('q')) {
+    q.value = params.get('q')!;
+    run();
+  }
+</script>

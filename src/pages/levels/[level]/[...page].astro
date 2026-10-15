@@ -1,0 +1,58 @@
+---
+import type { GetStaticPaths, Page } from 'astro';
+import Base from '../../../layouts/Base.astro';
+import WordCard from '../../../components/WordCard.astro';
+import Pagination from '../../../components/Pagination.astro';
+import { getLevelStats, getWordsByLevel, PAGE_SIZE, type Word } from '../../../lib/glossary';
+
+export const getStaticPaths = (({ paginate }) => {
+  const levels = getLevelStats().map((s) => s.level);
+  return levels.flatMap((level) => {
+    const words = getWordsByLevel(level);
+    return paginate(words, {
+      params: { level },
+      pageSize: PAGE_SIZE,
+      props: { level },
+    });
+  });
+}) satisfies GetStaticPaths;
+
+interface Props {
+  page: Page<Word>;
+  level: string;
+}
+const { page, level } = Astro.props as Props;
+
+const hrefFor = (p: number) =>
+  p === 1
+    ? `/levels/${encodeURIComponent(level)}/`
+    : `/levels/${encodeURIComponent(level)}/${p}/`;
+---
+
+<Base title={`${level} 词汇 · 第 ${page.currentPage} 页 · 华章`}>
+  <section class="container-page py-10">
+    <nav class="mb-4 flex items-center gap-2 text-sm text-inklight">
+      <a href="/levels/" class="link-quiet">分级</a>
+      <span>/</span>
+      <span class="text-ink">{level}</span>
+    </nav>
+
+    <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="font-song text-3xl font-bold">{level} 词汇</h1>
+        <p class="mt-1 text-sm text-inklight">
+          共 {page.total.toLocaleString()} 词 · 第 {page.currentPage}/{page.lastPage} 页
+        </p>
+      </div>
+      <a href={`/flashcards/${encodeURIComponent(level)}/`} class="btn-primary">
+        闪卡复习本级
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {page.data.map((w) => <WordCard word={w} />)}
+    </div>
+
+    <Pagination current={page.currentPage} total={page.lastPage} hrefFor={hrefFor} />
+  </section>
+</Base>

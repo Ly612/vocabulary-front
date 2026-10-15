@@ -1,0 +1,57 @@
+---
+const nav = [
+  { href: '/', label: '首页' },
+  { href: '/words/', label: '词汇' },
+  { href: '/levels/', label: '分级' },
+  { href: '/flashcards/', label: '闪卡' },
+];
+const path = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? path === '/' : path.startsWith(href);
+---
+
+<header class="sticky top-0 z-40 border-b border-cloud/80 bg-xuan/85 backdrop-blur">
+  <div class="container-page flex h-16 items-center justify-between">
+    <a href="/" class="flex items-center gap-3">
+      <span class="seal h-10 w-10 text-lg leading-none rotate-3 shadow-paper">华</span>
+      <span class="flex flex-col leading-tight">
+        <span class="font-song text-lg font-bold tracking-wide">华章</span>
+        <span class="text-[11px] tracking-[0.3em] text-inklight">汉语词汇</span>
+      </span>
+    </a>
+
+    <nav class="hidden items-center gap-1 sm:flex">
+      {
+        nav.map((n) => (
+          <a
+            href={n.href}
+            class={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              isActive(n.href)
+                ? 'bg-zhu/10 text-zhu'
+                : 'text-inklight hover:text-zhu'
+            }`}
+          >
+            {n.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <a href="/words/" class="btn-primary sm:hidden">查词</a>
+  </div>
+
+  <nav class="container-page flex gap-1 pb-2 sm:hidden">
+    {
+      nav.map((n) => (
+        <a
+          href={n.href}
+          class={`flex-1 rounded-lg px-2 py-1.5 text-center text-xs font-medium ${
+            isActive(n.href) ? 'bg-zhu/10 text-zhu' : 'text-inklight'
+          }`}
+        >
+          {n.label}
+        </a>
+      ))
+    }
+  </nav>
+</header>

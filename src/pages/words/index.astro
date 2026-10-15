@@ -1,0 +1,17 @@
+---
+import Base from '../../layouts/Base.astro';
+import WordListSection from '../../components/WordListSection.astro';
+import { getAllWords, paginate } from '../../lib/glossary';
+
+const { totalPages, totalItems, pages } = paginate(getAllWords());
+const first = pages[0];
+---
+
+<Base title="词汇总览 · 华章">
+  <WordListSection
+    items={first.items}
+    current={1}
+    totalPages={totalPages}
+    totalItems={totalItems}
+  />
+</Base>

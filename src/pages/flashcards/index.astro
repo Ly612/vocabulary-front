@@ -1,0 +1,31 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getLevelStats } from '../../lib/glossary';
+const stats = getLevelStats();
+---
+
+<Base title="闪卡复习 · 华章">
+  <section class="container-page py-10">
+    <div class="mb-8">
+      <h1 class="font-song text-3xl font-bold">闪卡复习</h1>
+      <p class="mt-1 text-sm text-inklight">
+        翻卡记忆 · 标记已掌握 · 进度自动保存在本地
+      </p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {
+        stats.map((s, i) => (
+          <a
+            href={`/flashcards/${encodeURIComponent(s.level)}/`}
+            class="card group flex flex-col gap-2 p-5 transition-all hover:-translate-y-0.5 hover:border-jin/60"
+          >
+            <span class="seal h-10 w-10 text-lg">{i + 1}</span>
+            <span class="mt-2 font-song text-xl font-bold group-hover:text-zhu">{s.level}</span>
+            <span class="text-sm text-inklight">{s.count.toLocaleString()} 词</span>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+</Base>

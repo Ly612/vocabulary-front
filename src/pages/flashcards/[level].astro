@@ -1,0 +1,210 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Base from '../../layouts/Base.astro';
+import { getLevelStats, getWordsByLevel } from '../../lib/glossary';
+
+export const getStaticPaths = (() => {
+  return getLevelStats().map((s) => ({ params: { level: s.level } }));
+}) satisfies GetStaticPaths;
+
+const { level } = Astro.params as { level: string };
+// 为控制页面体积，闪卡每级最多装载 500 词
+const MAX = 500;
+const all = getWordsByLevel(level);
+const deck = all.slice(0, MAX).map((w) => ({
+  slug: w.slug,
+  word: w.word,
+  pinyin: w.pinyin,
+  cixing: w.cixing,
+  def: w.shortDef,
+  ex: w.examples[0] ?? null,
+}));
+---
+
+<Base title={`${level} 闪卡 · 华章`}>
+  <section class="container-page py-10">
+    <nav class="mb-4 flex items-center gap-2 text-sm text-inklight">
+      <a href="/flashcards/" class="link-quiet">闪卡</a>
+      <span>/</span>
+      <span class="text-ink">{level}</span>
+    </nav>
+
+    <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="font-song text-3xl font-bold">{level} 闪卡</h1>
+        <p class="mt-1 text-sm text-inklight">
+          本组 {deck.length} 词{all.length > deck.length ? `（共 ${all.length} 词，取前 ${MAX}）` : ''} · 点击卡片翻面
+        </p>
+      </div>
+      <div class="flex gap-2">
+        <button id="btn-shuffle" class="btn-ghost">打乱</button>
+        <button id="btn-reset" class="btn-ghost">重置进度</button>
+      </div>
+    </div>
+
+    <!-- 进度 -->
+    <div class="mb-4">
+      <div class="flex items-center justify-between text-sm text-inklight">
+        <span id="progress-text">0 / {deck.length}</span>
+        <span id="mastered-text">已掌握 0</span>
+      </div>
+      <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-cloud">
+        <div id="progress-bar" class="h-full w-0 bg-zhu transition-all"></div>
+      </div>
+    </div>
+
+    <!-- 卡片 -->
+    <div class="mx-auto max-w-2xl">
+      <div id="card" class="group relative h-72 cursor-pointer select-none [perspective:1200px]">
+        <div
+          id="card-inner"
+          class="relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d]"
+        >
+          <!-- 正面 -->
+          <div class="card absolute inset-0 flex flex-col items-center justify-center gap-3 p-8 [backface-visibility:hidden]">
+            <span id="front-level" class="tag"></span>
+            <span id="front-word" class="font-song text-7xl font-black"></span>
+            <span class="text-sm text-inklight">点击查看释义</span>
+          </div>
+          <!-- 背面 -->
+          <div class="card absolute inset-0 flex flex-col items-center justify-center gap-2 p-8 text-center [backface-visibility:hidden] [transform:rotateY(180deg)]">
+            <span id="back-pinyin" class="text-2xl font-medium text-dai"></span>
+            <span id="back-cixing" class="tag"></span>
+            <span id="back-def" class="mt-2 text-lg text-ink"></span>
+            <div id="back-ex" class="mt-3 hidden rounded-lg bg-xuan/70 p-3 text-sm">
+              <p id="ex-zh" class="font-song text-ink"></p>
+              <p id="ex-en" class="mt-1 text-dai"></p>
+            </div>
+            <a id="back-link" href="#" class="mt-2 text-xs text-jin hover:underline">查看详情 →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作区 -->
+      <div class="mt-6 flex items-center justify-between gap-3">
+        <button id="btn-prev" class="btn-ghost">← 上一张</button>
+        <button id="btn-master" class="btn-primary">标记已掌握 ✓</button>
+        <button id="btn-next" class="btn-ghost">下一张 →</button>
+      </div>
+      <p id="done-msg" class="mt-6 hidden text-center font-song text-lg text-zhu">
+        🎉 本组已全部掌握，温故而知新！
+      </p>
+    </div>
+  </section>
+
+  <script define:vars={{ deck, level }}>
+    const STORAGE_KEY = `hz-mastered:${level}`;
+    let cards = deck.slice();
+    let i = 0;
+    let flipped = false;
+    let mastered = new Set();
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      mastered = new Set(saved);
+    } catch (e) {
+      mastered = new Set();
+    }
+
+    const $ = (id) => document.getElementById(id);
+    const inner = $('card-inner');
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...mastered]));
+    }
+
+    function setFlip(v) {
+      flipped = v;
+      inner.style.transform = v ? 'rotateY(180deg)' : 'rotateY(0deg)';
+    }
+
+    function renderProgress() {
+      const totalN = cards.length;
+      $('progress-text').textContent = `${i + 1} / ${totalN}`;
+      const m = mastered.size;
+      $('mastered-text').textContent = `已掌握 ${m}`;
+      $('progress-bar').style.width = totalN ? `${(m / totalN) * 100}%` : '0%';
+      $('done-msg').classList.toggle('hidden', m < totalN || totalN === 0);
+    }
+
+    function render() {
+      if (cards.length === 0) return;
+      const c = cards[i];
+      setFlip(false);
+      $('front-level').textContent = level;
+      $('front-word').textContent = c.word;
+      $('back-pinyin').textContent = c.pinyin;
+      $('back-cixing').textContent = c.cixing ? `[${c.cixing}]` : '';
+      $('back-cixing').style.display = c.cixing ? '' : 'none';
+      $('back-def').textContent = c.def || '（暂无短释义）';
+      $('back-link').href = `/words/${c.slug}/`;
+      const exWrap = $('back-ex');
+      if (c.ex) {
+        exWrap.classList.remove('hidden');
+        $('ex-zh').textContent = c.ex.zh;
+        $('ex-en').textContent = c.ex.en;
+      } else {
+        exWrap.classList.add('hidden');
+      }
+      // 已掌握高亮
+      const masterBtn = $('btn-master');
+      if (mastered.has(c.slug)) {
+        masterBtn.textContent = '已掌握 ✓（取消）';
+        masterBtn.classList.add('opacity-70');
+      } else {
+        masterBtn.textContent = '标记已掌握 ✓';
+        masterBtn.classList.remove('opacity-70');
+      }
+      renderProgress();
+    }
+
+    function next() {
+      i = (i + 1) % cards.length;
+      render();
+    }
+    function prev() {
+      i = (i - 1 + cards.length) % cards.length;
+      render();
+    }
+
+    $('card').addEventListener('click', () => setFlip(!flipped));
+    $('btn-next').addEventListener('click', next);
+    $('btn-prev').addEventListener('click', prev);
+    $('btn-master').addEventListener('click', () => {
+      const c = cards[i];
+      if (mastered.has(c.slug)) mastered.delete(c.slug);
+      else mastered.add(c.slug);
+      save();
+      render();
+      if (!mastered.has(c.slug)) return;
+      // 掌握后自动跳下一张
+      setTimeout(next, 250);
+    });
+    $('btn-shuffle').addEventListener('click', () => {
+      for (let k = cards.length - 1; k > 0; k--) {
+        const j = Math.floor(Math.random() * (k + 1));
+        [cards[k], cards[j]] = [cards[j], cards[k]];
+      }
+      i = 0;
+      render();
+    });
+    $('btn-reset').addEventListener('click', () => {
+      mastered.clear();
+      save();
+      i = 0;
+      render();
+    });
+
+    // 键盘支持
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') next();
+      else if (e.key === 'ArrowLeft') prev();
+      else if (e.key === ' ') {
+        e.preventDefault();
+        setFlip(!flipped);
+      } else if (e.key === 'Enter') $('btn-master').click();
+    });
+
+    render();
+  </script>
+</Base>

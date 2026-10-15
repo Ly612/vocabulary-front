@@ -1,0 +1,39 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Base from '../../../layouts/Base.astro';
+import WordListSection from '../../../components/WordListSection.astro';
+import { getAllWords, paginate, type Word } from '../../../lib/glossary';
+
+export const getStaticPaths = (() => {
+  const { pages, totalPages, totalItems } = paginate(getAllWords());
+  // 第 1 页由 /words/ 承载，这里仅生成 2..n
+  return pages
+    .filter((p) => p.page > 1)
+    .map((p) => ({
+      params: { page: String(p.page) },
+      props: {
+        items: p.items,
+        current: p.page,
+        totalPages,
+        totalItems,
+      },
+    }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  items: Word[];
+  current: number;
+  totalPages: number;
+  totalItems: number;
+}
+const { items, current, totalPages, totalItems } = Astro.props as Props;
+---
+
+<Base title={`词汇 · 第 ${current} 页 · 华章`}>
+  <WordListSection
+    items={items}
+    current={current}
+    totalPages={totalPages}
+    totalItems={totalItems}
+  />
+</Base>
